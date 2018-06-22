@@ -1,0 +1,53 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Jun  7 22:39:21 2018
+
+@author: Tatsuya
+"""
+
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+import time
+import pickle
+import pandas as pd
+
+DETECT_DURATION = 1.0
+SAMPLING_TIME = 1000
+
+def get_features(measure_data):
+    mean_of_abs = measure_data.abs().mean()[0]
+    
+    #window = 16
+    #mean_each_window = [measure_data[n:n+window].mean()[0] for n in range(0, len(measure_data), 10)]
+    #max_each_window = [measure_data[n:n+window].max()[0] for n in range(0, len(measure_data), 10)]
+    #min_each_window = [measure_data[n:n+window].min()[0] for n in range(0, len(measure_data), 10)]
+    #std_of_mean = np.std(mean_each_window)
+    #std_of_width = np.std([mx - mn for mx, mn in zip(max_each_window, min_each_window)])
+
+    #return(np.array([mean_of_abs, std_of_mean, std_of_width]))
+    return(np.array([mean_of_abs, 1]))
+
+def power_detector():
+    
+    with open('model/clf_v1.pickle', mode='rb') as f:
+        clf = pickle.load(f)
+    
+    while(1):
+        try:
+            filename = ('data/current.txt')
+            measure_data = pd.read_csv(filename, header=None)[10:-1][-int(DETECT_DURATION*SAMPLING_TIME):]
+            measure_data = measure_data.astype(np.float)
+            test_feature = get_features(measure_data)
+            predict_label = clf.predict(test_feature.reshape(1, -1))
+            predict_prob = clf.predict_proba(test_feature.reshape(1, -1))
+            # print pd.DataFrame(predict_prob, columns=clf.classes_)
+            print 'detection: %s (%.2f)' % (predict_label[0], predict_prob.max())
+        except Exception as e:
+            print('err:', e.args)
+        time.sleep(0.1)
+    
+if __name__ == '__main__':
+
+    power_detector()
